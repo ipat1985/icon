@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: "Segoe UI", sans-serif;
+        background: #ffffff;
+        color: #333;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 340px;
+        margin: 0 auto;
+        padding: 24px 20px 30px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        text-align: center;
+      }
+
+      input[type="email"] {
+        width: 275px;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        background: #f0f0f4;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        font-size: 18px;
+        font-weight: 500;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .email-btn {
+        background: #7b4bc8;
+        color: white;
+      }
+
+      .email-btn:disabled {
+        background: #c2a6f1;
+        cursor: not-allowed;
+      }
+
+      .email-btn:hover:enabled {
+        background: #643fb1;
+      }
+
+      .link-btn {
+        background: #e4e0f7;
+        color: #3e2d71;
+      }
+
+      .link-btn:hover {
+        background: #d3c8f1;
+      }
+
+      .cancel-btn {
+        background: transparent;
+        color: #888;
+        text-decoration: underline;
+        margin-top: 20px;
+        font-size: 13px;
+        width: 100%;
+      }
+
+      .cancel-btn:hover {
+        color: #444;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      
+
+      <input type="email" id="email" placeholder="Введите e-mail" oninput="validateEmail()" />
+
+      <div class="buttons">
+        <button class="email-btn" id="emailBtn" onclick="shareByEmail()" disabled><img src="https://jumpshare.com/embed/vwuvQZb0n7v4JrwPZ2Gh" width=32px> Отправить на e-mail</button>
+        <button class="link-btn" id="linkBtn" onclick="justGetLink()">🔗 Копировать ссылку</button>
+        <button class="cancel-btn" onclick="google.script.host.close()">❌ Отмена</button>
+      </div>
+    </div>
+
+    <script>
+      function validateEmail() {
+        const email = document.getElementById("email").value.trim();
+        const isValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+        document.getElementById("emailBtn").disabled = !isValid;
+      }
+
+      function shareByEmail() {
+        const btn = document.getElementById("emailBtn");
+        const email = document.getElementById("email").value.trim();
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = "⏳ Отправка...";
+        btn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (url) {
+            btn.innerHTML = "✅ Отправлено!";
+            setTimeout(() => {
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+              google.script.host.close();
+            }, 1200);
+          })
+          .processSheetShare("email", email);
+      }
+
+      function justGetLink() {
+        const btn = document.getElementById("linkBtn");
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = "⏳ Копирование...";
+        btn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (url) {
+            navigator.clipboard.writeText(url).then(() => {
+              btn.innerHTML = "✅ Скопировано!";
+              setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                google.script.host.close();
+              }, 1200);
+            });
+          })
+          .processSheetShare("link", "");
+      }
+    </script>
+  </body>
+</html>
