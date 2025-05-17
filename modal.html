@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Merge Sheets</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Roboto, sans-serif;
+    }
+    .modal {
+      width: 640px;
+      height: 800px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-left:0px;
+    }
+    .modal-header {
+  background-color: #4DA954;
+  color: white;
+  padding: 0px 16px; /* больше отступ справа под крестик */
+  border-radius: 12px; /* округляем только верхние углы */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+    .modal-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 0px;
+      overflow: hidden;
+    }
+    .sheets-table {
+      flex: 1;
+      overflow-y: auto;
+      background-color: #fff;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+    }
+    .sheet-file {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      background-color: rgba(77, 169, 84, 0.1);
+      padding: 6px 8px;
+      border-radius: 8px;
+    }
+
+    .label-text {
+      display: flex;
+      align-items: center;
+      line-height: 1;
+      height: 18px; /* выравниваем с чекбоксом */
+    }
+
+
+    .sheet-list label:not(.custom-checkbox) {
+  display: block;
+  margin-bottom: 6px;
+  color: #666;
+}
+
+    .file-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      margin-left: 4px;
+      object-fit: contain;
+    }
+
+    .arrow {
+      font-size: 10px;
+      width: 16px;
+      margin-right: 8px;
+      transform: rotate(0deg);
+      transition: transform 0.2s ease;
+    }
+    .arrow.open {
+      transform: rotate(90deg);
+    }
+    .sheet-checkbox {
+    accent-color: #4DA954; /* твой зелёный */
+    }
+ 
+ 
+ .custom-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #444;
+  height: 24px;
+  line-height: 1;
+}
+
+
+
+
+.custom-checkbox input {
+  display: none;
+}
+
+
+.custom-checkbox .checkmark {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border: 2px solid #4DA954;
+  border-radius: 4px;
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+
+
+
+.custom-checkbox input:checked + .checkmark {
+  background-color: #4DA954;
+}
+
+.custom-checkbox input:checked + .checkmark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+
+
+
+
+
+
+
+    .sheet-list {
+      margin-left: 24px;
+      margin-top: 8px;
+      display: none;
+    }
+    .footer {
+      background-color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #ccc;
+    }
+    .merge-btn {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .merge-btn:disabled {
+      background-color: #ccc;
+      color: #666;
+      cursor: not-allowed;
+      opacity: 0.7;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <div class="modal-header">
+      <h4>Выберите лист(ы) которыми хотите поделиться</h4>
+      
+    </div>
+
+    <div class="modal-content">
+      <div class="sheets-table" id="sheets-table">Loading...</div>
+      <div style="margin-top: 16px; display: flex; gap: 12px;">
+        <button onclick="openDrivePicker()">Add files from Drive</button>
+        <button disabled>Exclude</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div><strong>iS-Studio</strong></div>
+      <div><button id="share-btn" class="merge-btn" disabled>Share</button></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      google.script.run.withSuccessHandler(renderSheets).getSheetList();
+    });
+
+    function renderSheets(files) {
+      const container = document.getElementById('sheets-table');
+      container.innerHTML = '';
+
+      files.forEach((file, index) => {
+        const fileId = `file-${index}`;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'sheet-file';
+
+        wrapper.innerHTML = `
+        <div class="sheet-header" onclick="toggleSheetList('${fileId}', this)">
+        <span class="arrow">▶</span>
+        <img src="https://cdn-icons-png.flaticon.com/128/5968/5968557.png" alt="icon" class="file-icon" />
+        <span><strong>${file.fileName}</strong></span>
+        </div>
+  <div id="${fileId}" class="sheet-list"></div>
+`;
+
+
+              const listContainer = wrapper.querySelector(`#${fileId}`);
+              file.sheets.forEach(sheet => {
+                const row = document.createElement('div');
+                row.innerHTML = `
+                  <label class="custom-checkbox">
+                    <input type="checkbox"
+                      class="sheet-checkbox"
+                      data-file-id="${file.fileId}"
+                      data-sheet-name="${sheet.sheetName}"
+                      onchange="updateShareButtonState()">
+                    <span class="checkmark"></span>
+                    <span>${sheet.sheetName}</span>
+                  </label>`;
+                listContainer.appendChild(row);
+              });
+
+
+
+
+        container.appendChild(wrapper);
+      });
+    }
+
+    function toggleSheetList(id, headerEl) {
+      const list = document.getElementById(id);
+      const arrow = headerEl.querySelector('.arrow');
+      const isOpen = list.style.display === 'block';
+      list.style.display = isOpen ? 'none' : 'block';
+      arrow.classList.toggle('open', !isOpen);
+    }
+
+    function updateShareButtonState() {
+      const checkedSheets = document.querySelectorAll('.sheet-checkbox:checked');
+      const btn = document.getElementById('share-btn');
+      btn.disabled = checkedSheets.length === 0;
+    }
+
+    function openDrivePicker() {
+      google.script.run.withSuccessHandler(token => {
+        const view = new google.picker.View(google.picker.ViewId.SPREADSHEETS);
+        const picker = new google.picker.PickerBuilder()
+          .addView(view)
+          .setOAuthToken(token)
+          .setDeveloperKey('AIzaSyCgv6btrFUcNXYrFKs8kXT0V1s1vct5GR4')
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const fileId = data.docs[0].id;
+              google.script.run.withSuccessHandler(renderSheets).getSheetsFromFile(fileId);
+            }
+          })
+          .build();
+        picker.setVisible(true);
+      }).getOAuthToken();
+    }
+  </script>
+</body>
+</html>
